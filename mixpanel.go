@@ -27,14 +27,17 @@ type MixPanel interface {
 }
 
 // Create mixpanel client
-func NewMixpanel(apiKey string, secret string, token string) *MixpanelClient {
-	return &MixpanelClient{apiKey, secret, token, MIXPANEL_BASE_URL}
+func NewMixpanel(token string) *MixpanelClient {
+	return NewMixpanelWithUrl(token, MIXPANEL_BASE_URL)
+}
+
+// Create mixpanel client
+func NewMixpanelWithUrl(token string, url string) *MixpanelClient {
+	return &MixpanelClient{token, url}
 }
 
 // Client struct
 type MixpanelClient struct {
-	apiKey  string
-	secret  string
 	token   string
 	baseUrl string
 }

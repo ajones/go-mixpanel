@@ -28,6 +28,7 @@ type Event struct {
 	Properties map[string]interface{} `json:"properties"`
 }
 
+// TODO implement chaining api
 func NewEvent(name string) *Event {
 	return &Event{
 		name,
