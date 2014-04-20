@@ -12,11 +12,12 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 const (
-	MIXPANEL_BASE_URL    = "http://api.mixpanel.com/"
+	MIXPANEL_BASE_URL    = "http://api.mixpanel.com"
 	MIXPANEL_DATE_FORMAT = "2006-01-02T15:04:05"
 )
 
@@ -41,22 +42,19 @@ type MixpanelClient struct {
 func (m *MixpanelClient) Track(event *Event) error {
 	event.setToken(m.token)
 
-	resp, err := m.makeRequest("track", event)
-	if err != nil {
+	if err := m.makeRequest("track", event); err != nil {
 		return err
 	}
-	log.Println(string(resp))
 
 	return nil
 }
 
 func (m *MixpanelClient) Update(update *Update) error {
+	update.setToken(m.token)
 
-	resp, err := m.makeRequest("engage", update)
-	if err != nil {
+	if err := m.makeRequest("engage", update); err != nil {
 		return err
 	}
-	log.Println(string(resp))
 
 	return nil
 }
@@ -68,31 +66,39 @@ func (m *MixpanelClient) Update(update *Update) error {
 // img - 1 or 0 If present and equal to 1, Mixpanel will serve a 1x1 transparent pixel image as a response to the request. This is useful for tracking page loads and email opens.
 // callback - function name If present, Mixpanel will serve a response of type text/javascript, containing a call to a function with the given name. This is useful for reacting to Mixpanel track events in JavaScript.
 // verbose - 1 or 0 If present and equal to 1, Mixpanel will respond with a JSON Object describing the success or failure of the tracking call. The returned object will have two keys: "status", with the value 1 on success and 0 on failure, and "error", with a string-valued error message if the request wasn't successful. verbose=1 is useful for debugging your Mixpanel implementation.
-func (m *MixpanelClient) makeRequest(action string, obj interface{}) ([]byte, error) {
+func (m *MixpanelClient) makeRequest(action string, obj interface{}) error {
 
 	payload, err := m.encodePayload(obj)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	uri := fmt.Sprintf("%s/%s/?data=%s", m.baseUrl, action, payload)
 
+	log.Println(uri)
+
 	client := new(http.Client)
 	req, err := http.NewRequest("GET", uri, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer resp.Body.Close()
 	bytes, err := ioutil.ReadAll(resp.Body)
-	return bytes, err
+	if err != nil {
+		return err
+	}
 
-	//TODO handle response correctly
+	if strings.TrimSpace(string(bytes)) != "1" {
+		return fmt.Errorf("Call to [%s] failed", uri)
+	}
+
+	return nil
 }
 
 func (m *MixpanelClient) encodePayload(obj interface{}) (string, error) {

@@ -43,6 +43,10 @@ func NewUpdate(distintId string) *Update {
 	}
 }
 
+func (e *Update) setToken(token string) {
+	e.Token = token
+}
+
 func (e *Update) SetIp(ip string) {
 	e.Ip = ip
 }
@@ -56,15 +60,22 @@ func (e *Update) SetIgnoreTime() {
 }
 
 func (e *Update) SetOperation(operation Operation) {
-	/*
-		switch operation.(type) {
-		case *Set:
-			fmt.Println(operation)
-			e.Set = operation
-		case *SetOnce:
-			e.SetOnce = operation
-		}
-	*/
+	switch operation.(type) {
+	case Set:
+		e.Set = operation
+	case SetOnce:
+		e.SetOnce = operation
+	case Add:
+		e.Add = operation
+	case Unset:
+		e.Unset = operation
+	case Append:
+		e.Append = operation
+	case Union:
+		e.Union = operation
+	case Delete:
+		e.Delete = operation
+	}
 }
 
 // $set
@@ -144,6 +155,10 @@ func (o SetOnce) Operation() string {
 // }
 type Add map[string]int64
 
+func NewAdd() Add {
+	return make(map[string]int64)
+}
+
 func (o Add) Increment(key string, value int) {
 	o[key] = int64(value)
 }
@@ -198,11 +213,15 @@ func (o Append) Operation() string {
 // }
 type Union map[string][]interface{}
 
+func NewUnion() Union {
+	return make(map[string][]interface{})
+}
+
 func (o Union) AddUnion(key string, values ...interface{}) {
 	//TODO attribute already exists in map?
 	//union, ok := m[key]
 	//if !ok {
-	union := make([]interface{}, len(values))
+	union := make([]interface{}, 0, len(values))
 	//}
 	for _, value := range values {
 		switch t := value.(type) {
